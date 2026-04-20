@@ -10,6 +10,17 @@
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
 
   <style>
+    /* ══════════════════════════════════════════════
+       PARÁMETROS — cambia solo estos valores
+       ══════════════════════════════════════════════ */
+    :root {
+      --icon-size:       300px;  /* tamaño del icono */
+      --content-scale:   1;      /* escala general — ej: 0.8 = más pequeño, 1.2 = más grande */
+      --icon-text-gap:   2px;    /* espacio entre icono y texto */
+      --vertical-pos:    80px;   /* posición vertical — más grande = más arriba, más pequeño = más abajo */
+    }
+    /* ══════════════════════════════════════════════ */
+
     * { box-sizing: border-box; }
 
     html, body {
@@ -45,7 +56,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 24px 80px;
+      padding: 0 24px var(--vertical-pos);
     }
 
     .bottombar {
@@ -60,8 +71,8 @@
     /* Icon ping animation */
     .icon-area {
       position: relative;
-      width: 280px;
-      height: 250px;
+      width: var(--icon-size);
+      height: calc(var(--icon-size) * 0.85);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -72,7 +83,7 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 300px;
+      width: var(--icon-size);
       animation: pingPin 0.9s cubic-bezier(0, 0, 0.2, 1) infinite;
       pointer-events: none;
     }
@@ -80,7 +91,7 @@
     .icon-main {
       position: relative;
       z-index: 1;
-      width: 300px;
+      width: var(--icon-size);
     }
 
     @keyframes pingPin {
@@ -119,7 +130,7 @@
 
   <!-- â”€â”€ Main content â”€â”€ -->
   <div class="content">
-    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;transform:scale(var(--content-scale));transform-origin:center center;">
 
       <!-- Icon -->
       <div class="icon-area">
@@ -128,7 +139,7 @@
       </div>
 
       <!-- Checked in for -->
-      <div style="color:#009b79;font-size:24px;font-weight:600;margin-top:2px;">
+      <div style="color:#009b79;font-size:24px;font-weight:600;margin-top:var(--icon-text-gap);">
         Checked in for
       </div>
 
