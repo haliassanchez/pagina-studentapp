@@ -45,7 +45,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 24px 0;
+      padding: 0 24px 80px;
     }
 
     .bottombar {
@@ -60,8 +60,8 @@
     /* Icon ping animation */
     .icon-area {
       position: relative;
-      width: 250px;
-      height: 220px;
+      width: 280px;
+      height: 250px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -72,7 +72,7 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 270px;
+      width: 300px;
       animation: pingPin 0.9s cubic-bezier(0, 0, 0.2, 1) infinite;
       pointer-events: none;
     }
@@ -80,7 +80,7 @@
     .icon-main {
       position: relative;
       z-index: 1;
-      width: 270px;
+      width: 300px;
     }
 
     @keyframes pingPin {
@@ -128,13 +128,13 @@
       </div>
 
       <!-- Checked in for -->
-      <div style="color:#009b79;font-size:22px;font-weight:600;margin-top:8px;">
+      <div style="color:#009b79;font-size:24px;font-weight:600;margin-top:8px;">
         Checked in for
       </div>
 
       <!-- Activity name (editable) -->
       <div contenteditable="true" spellcheck="false" id="activityName"
-           style="font-size:22px;font-weight:600;color:#374151;margin-top:4px;">
+           style="font-size:24px;font-weight:600;color:#374151;margin-top:4px;">
         Boulder | Klimkaffee
       </div>
 
@@ -142,7 +142,7 @@
       <div style="margin-top:16px;position:relative;cursor:pointer;" class="group"
            onclick="document.getElementById('photoInput').click()">
         <img id="profilePhoto"
-             style="width:148px;height:148px;border-radius:9999px;object-fit:cover;border:2px solid #d1d5db;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
+             style="width:160px;height:160px;border-radius:9999px;object-fit:cover;border:2px solid #d1d5db;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
              src="https://ui-avatars.com/api/?name=Hugo+Alias+Sanchez&background=009b79&color=fff&size=400"
              alt="Profile" />
         <div style="position:absolute;inset:0;border-radius:9999px;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;"
@@ -154,22 +154,22 @@
 
       <!-- Person name (editable) -->
       <div contenteditable="true" spellcheck="false" id="personName"
-           style="font-size:17px;font-weight:700;color:#374151;margin-top:12px;">
+           style="font-size:19px;font-weight:700;color:#374151;margin-top:12px;">
         Hugo Alias Sanchez
       </div>
 
       <!-- Institution (editable) -->
       <div contenteditable="true" spellcheck="false" id="institution"
-           style="font-size:17px;font-weight:400;color:#374151;margin-top:4px;">
+           style="font-size:19px;font-weight:400;color:#374151;margin-top:4px;">
         Thomas More
       </div>
 
       <!-- Date/time -->
-      <div id="datetime" style="font-size:15px;color:#374151;margin-top:6px;"></div>
+      <div id="datetime" style="font-size:16px;color:#374151;margin-top:6px;"></div>
 
       <!-- Show activity button -->
       <div style="margin-top:16px;">
-        <button style="background:#009b79;color:white;border:none;border-radius:8px;padding:12px 28px;font-size:17px;font-weight:600;cursor:pointer;transition:background 0.2s;"
+        <button style="background:#009b79;color:white;border:none;border-radius:8px;padding:12px 32px;font-size:18px;font-weight:600;cursor:pointer;transition:background 0.2s;"
                 onmouseover="this.style.background='#007d62'" onmouseout="this.style.background='#009b79'">
           Show activity &rarr;
         </button>
