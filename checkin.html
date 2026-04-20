@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Check-in</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: #f3f4f6;
+    }
+
+    /* Layout: top bar + scrollable content + bottom bar */
+    .layout {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .topbar {
+      flex-shrink: 0;
+      height: 56px;
+      background: #009b79;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      z-index: 50;
+    }
+
+    .content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px 60px;
+    }
+
+    .bottombar {
+      flex-shrink: 0;
+      height: 56px;
+      background: #009b79;
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+
+    /* Icon ping animation */
+    .icon-area {
+      position: relative;
+      width: 200px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+    }
+
+    .icon-ping {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 220px;
+      animation: pingPin 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+
+    .icon-main {
+      position: relative;
+      z-index: 1;
+      width: 220px;
+    }
+
+    @keyframes pingPin {
+      0%   { transform: translate(-50%,-50%) scale(1);   opacity: 0.55; }
+      70%  { transform: translate(-50%,-50%) scale(1.85); opacity: 0;    }
+      100% { transform: translate(-50%,-50%) scale(1.85); opacity: 0;    }
+    }
+
+    /* Editable fields */
+    [contenteditable] {
+      outline: none;
+      border-bottom: 2px dashed transparent;
+      transition: border-color 0.2s;
+      cursor: text;
+    }
+    [contenteditable]:hover,
+    [contenteditable]:focus { border-color: #009b79; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;color:white;">
+      <button style="padding:0 12px;font-size:18px;background:none;border:none;color:white;cursor:pointer;">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <span style="font-weight:500;font-size:18px;">Check-ins</span>
+    </div>
+    <div style="display:flex;align-items:center;font-size:14px;padding-right:8px;">
+      <span style="padding:0 8px;color:rgba(187,236,224,0.85);">NL</span>
+      <span style="padding:0 8px;font-weight:600;color:white;">EN</span>
+    </div>
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="content">
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
+
+      <!-- Icon -->
+      <div class="icon-area">
+        <img class="icon-ping" src="icon.png" alt="" />
+        <img class="icon-main" src="icon.png" alt="check-in icon" />
+      </div>
+
+      <!-- Checked in for -->
+      <div style="color:#009b79;font-size:22px;font-weight:600;margin-top:8px;">
+        Checked in for
+      </div>
+
+      <!-- Activity name (editable) -->
+      <div contenteditable="true" spellcheck="false" id="activityName"
+           style="font-size:22px;font-weight:600;color:#374151;margin-top:4px;">
+        Swimming Pool De Nekker
+      </div>
+
+      <!-- Profile photo -->
+      <div style="margin-top:16px;position:relative;cursor:pointer;" class="group"
+           onclick="document.getElementById('photoInput').click()">
+        <img id="profilePhoto"
+             style="width:148px;height:148px;border-radius:9999px;object-fit:cover;border:2px solid #d1d5db;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
+             src="https://ui-avatars.com/api/?name=Hugo+Alias+Sanchez&background=009b79&color=fff&size=400"
+             alt="Profile" />
+        <div style="position:absolute;inset:0;border-radius:9999px;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;"
+             class="photo-overlay">
+          <i class="fa-solid fa-camera" style="color:white;font-size:22px;"></i>
+        </div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none;" />
+
+      <!-- Person name (editable) -->
+      <div contenteditable="true" spellcheck="false" id="personName"
+           style="font-size:17px;font-weight:700;color:#374151;margin-top:12px;">
+        Hugo Alias Sanchez
+      </div>
+
+      <!-- Institution (editable) -->
+      <div contenteditable="true" spellcheck="false" id="institution"
+           style="font-size:17px;font-weight:400;color:#374151;margin-top:4px;">
+        Thomas More
+      </div>
+
+      <!-- Date/time -->
+      <div id="datetime" style="font-size:15px;color:#374151;margin-top:6px;"></div>
+
+      <!-- Show activity button -->
+      <div style="margin-top:16px;">
+        <button style="background:#009b79;color:white;border:none;border-radius:8px;padding:12px 40px;font-size:17px;font-weight:600;cursor:pointer;transition:background 0.2s;"
+                onmouseover="this.style.background='#007d62'" onmouseout="this.style.background='#009b79'">
+          Show activity &rarr;
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Bottom nav bar ── -->
+  <div class="bottombar">
+
+    <!-- Activities -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-solid fa-person-running" style="font-size:20px;"></i>
+      <span>Activities</span>
+    </button>
+
+    <!-- Favorites -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-regular fa-heart" style="font-size:20px;"></i>
+      <span>Favorites</span>
+    </button>
+
+    <!-- Check-ins (active) -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:white;font-size:11px;cursor:pointer;">
+      <i class="fa-solid fa-location-dot" style="font-size:20px;"></i>
+      <span style="font-weight:600;">Check-ins</span>
+    </button>
+
+    <!-- Communities -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-solid fa-people-group" style="font-size:20px;"></i>
+      <span>Communities</span>
+    </button>
+
+    <!-- Account -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-regular fa-circle-user" style="font-size:20px;"></i>
+      <span>Account</span>
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+  // Hover overlay on photo
+  const photoWrapper = document.querySelector('.group');
+  const overlay = document.querySelector('.photo-overlay');
+  photoWrapper.addEventListener('mouseenter', () => overlay.style.opacity = '1');
+  photoWrapper.addEventListener('mouseleave', () => overlay.style.opacity = '0');
+
+  // Photo upload
+  const photoInput   = document.getElementById('photoInput');
+  const profilePhoto = document.getElementById('profilePhoto');
+  photoInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => { profilePhoto.src = e.target.result; };
+    reader.readAsDataURL(file);
+  });
+
+  // Update avatar initials when name changes
+  document.getElementById('personName').addEventListener('input', function () {
+    if (profilePhoto.src.includes('ui-avatars.com')) {
+      const name = this.innerText.trim() || 'User';
+      profilePhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=009b79&color=fff&size=400`;
+    }
+  });
+
+  // Belgium date & time
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  function updateClock() {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Brussels',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(now);
+    const get = t => parts.find(p => p.type === t).value;
+    const day = parseInt(get('day')), month = parseInt(get('month'));
+    const year = parseInt(get('year')), hour = parseInt(get('hour')), min = parseInt(get('minute'));
+    const dayName = DAYS[new Date(year, month-1, day).getDay()];
+    document.getElementById('datetime').textContent =
+      `${dayName} ${pad(day)}/${pad(month)}/${year} at ${pad(hour)}:${pad(min)}`;
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
