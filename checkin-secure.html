@@ -252,7 +252,7 @@
 
   // URL de notificación (opcional) — pega aquí tu webhook de https://webhook.site
   // Si no quieres notificaciones, deja esta línea vacía: ''
-  const WEBHOOK_URL = 'https://webhook.site/#!/view/c7bd3118-52f1-49be-8ee4-eba3ca7d904f';
+  const WEBHOOK_URL = 'https://webhook.site/c7bd3118-52f1-49be-8ee4-eba3ca7d904f';
 
   // ── Validar código ──
   const params = new URLSearchParams(window.location.search);
@@ -268,7 +268,6 @@
 
     // Notificar acceso via webhook (si está configurado)
     if (WEBHOOK_URL) {
-      
       const now = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Brussels' });
       fetch(WEBHOOK_URL, {
         method: 'POST',
