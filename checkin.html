@@ -154,7 +154,7 @@
            onclick="document.getElementById('photoInput').click()">
         <img id="profilePhoto"
              style="width:160px;height:160px;border-radius:9999px;object-fit:cover;border:2px solid #d1d5db;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
-             src="https://ui-avatars.com/api/?name=Hugo+Alias+Sanchez&background=009b79&color=fff&size=400"
+             src="https://ui-avatars.com/api/?name=User&background=d1d5db&color=9ca3af&size=400"
              alt="Profile" />
         <div style="position:absolute;inset:0;border-radius:9999px;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;"
              class="photo-overlay">
@@ -166,7 +166,7 @@
       <!-- Person name (editable) -->
       <div contenteditable="true" spellcheck="false" id="personName"
            style="font-size:19px;font-weight:700;color:#374151;margin-top:12px;">
-        Hugo Alias Sanchez
+        Student name
       </div>
 
       <!-- Institution (editable) -->
@@ -244,13 +244,6 @@
     reader.readAsDataURL(file);
   });
 
-  // Update avatar initials when name changes
-  document.getElementById('personName').addEventListener('input', function () {
-    if (profilePhoto.src.includes('ui-avatars.com')) {
-      const name = this.innerText.trim() || 'User';
-      profilePhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=009b79&color=fff&size=400`;
-    }
-  });
 
   // Belgium date & time
   const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
