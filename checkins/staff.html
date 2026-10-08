@@ -9,7 +9,7 @@
   <link rel="icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="shared.css?v=202610082043" />
   <style>
     .result { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
     .result .status { font-size: 20px; font-weight: 800; padding: 8px 16px; border-radius: 10px; margin-bottom: 8px; }
@@ -46,8 +46,8 @@
   <div class="topbar">
     <span class="topbar-title">Verificar</span>
     <div class="topbar-actions">
-      <a class="topbar-pill" href="index.html"><i class="fa-solid fa-user-graduate"></i> Estudiante</a>
-      <a class="topbar-link hidden" id="adminLink" href="admin.html" title="Administración"><i class="fa-solid fa-shield-halved"></i></a>
+      <a class="topbar-pill" href="index.html?v=202610082043"><i class="fa-solid fa-user-graduate"></i> Estudiante</a>
+      <a class="topbar-link hidden" id="adminLink" href="admin.html?v=202610082043" title="Administración"><i class="fa-solid fa-shield-halved"></i></a>
       <button class="topbar-link" onclick="logout()" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
     </div>
   </div>
@@ -72,8 +72,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
-<script src="shared.js"></script>
+<script src="config.js?v=202610082043"></script>
+<script src="shared.js?v=202610082043"></script>
 <script>
   const SELECT = 'code, created_at, activity:activities(name, location), student:profiles(full_name, institution, photo_path)';
 

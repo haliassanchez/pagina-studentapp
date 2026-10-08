@@ -13,7 +13,7 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="shared.css?v=202610082043" />
 
   <style>
     /* ══════════════════════════════════════════════
@@ -155,7 +155,7 @@
       <span class="topbar-title" id="title">Check-ins</span>
     </div>
     <div style="display:flex;align-items:center;font-size:14px;padding-right:8px;">
-      <a class="topbar-pill hidden" id="panelSwitch" href="admin.html"><i class="fa-solid fa-shield-halved"></i> <span>Admin</span></a>
+      <a class="topbar-pill hidden" id="panelSwitch" href="admin.html?v=202610082043"><i class="fa-solid fa-shield-halved"></i> <span>Admin</span></a>
       <span style="padding:0 8px;color:rgba(187,236,224,0.85);">NL</span>
       <span style="padding:0 8px;font-weight:600;color:white;">EN</span>
     </div>
@@ -220,8 +220,8 @@
         </form>
         <div class="card hidden" id="staffLinks">
           <div class="row" style="flex-wrap:wrap;">
-            <a class="btn btn-small btn-outline" href="staff.html" style="text-decoration:none;">Verificar check-ins</a>
-            <a class="btn btn-small btn-outline hidden" id="adminLink" href="admin.html" style="text-decoration:none;">Administración</a>
+            <a class="btn btn-small btn-outline" href="staff.html?v=202610082043" style="text-decoration:none;">Verificar check-ins</a>
+            <a class="btn btn-small btn-outline hidden" id="adminLink" href="admin.html?v=202610082043" style="text-decoration:none;">Administración</a>
           </div>
         </div>
         <button class="btn btn-danger" style="width:100%;" onclick="logout()">Log out</button>
@@ -260,8 +260,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js"></script>
-<script src="shared.js"></script>
+<script src="config.js?v=202610082043"></script>
+<script src="shared.js?v=202610082043"></script>
 <script>
   let profile = null;
   let activities = [];
@@ -309,7 +309,7 @@
       if (profile.role === 'admin') {
         panelSwitch.classList.remove('hidden');
       } else if (profile.role === 'staff') {
-        panelSwitch.href = 'staff.html';
+        panelSwitch.href = 'staff.html?v=202610082043';
         panelSwitch.querySelector('span').textContent = 'Verificar';
         panelSwitch.classList.remove('hidden');
       }
@@ -441,7 +441,7 @@
     document.getElementById('modalTime').textContent = formatCheckinTime(c.created_at);
     const qr = document.getElementById('qr');
     qr.innerHTML = '';
-    new QRCode(qr, { text: new URL('staff.html?code=' + c.code, location.href).href, width: 180, height: 180 });
+    new QRCode(qr, { text: new URL('staff.html?v=202610082043&code=' + c.code, location.href).href, width: 180, height: 180 });
     document.getElementById('activityModal').classList.remove('hidden');
   });
 

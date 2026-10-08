@@ -7,7 +7,7 @@
   <link rel="icon" href="icon-192.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="shared.css?v=202610082043" />
   <style>
     .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .tabs button { flex: 1; }
@@ -46,8 +46,8 @@
   <div class="topbar">
     <span class="topbar-title">Admin</span>
     <div class="topbar-actions">
-      <a class="topbar-pill" href="index.html"><i class="fa-solid fa-user-graduate"></i> Estudiante</a>
-      <a class="topbar-link" href="staff.html" title="Verificar check-ins"><i class="fa-solid fa-qrcode"></i></a>
+      <a class="topbar-pill" href="index.html?v=202610082043"><i class="fa-solid fa-user-graduate"></i> Estudiante</a>
+      <a class="topbar-link" href="staff.html?v=202610082043" title="Verificar check-ins"><i class="fa-solid fa-qrcode"></i></a>
       <button class="topbar-link" onclick="logout()" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
     </div>
   </div>
@@ -152,8 +152,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
-<script src="shared.js"></script>
+<script src="config.js?v=202610082043"></script>
+<script src="shared.js?v=202610082043"></script>
 <script>
   let people = [];
   let editing = null;
