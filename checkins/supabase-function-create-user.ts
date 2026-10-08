@@ -23,11 +23,19 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
   try {
-    const admin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { auth: { persistSession: false } },
-    );
+    // Clave secreta: proyectos antiguos (service_role) o nuevos (sb_secret_...)
+    let secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!secretKey) {
+      try {
+        const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+        secretKey = keys.default ?? Object.values(keys)[0];
+      } catch (_) { /* sin clave */ }
+    }
+    if (!secretKey) return json({ error: 'La función no encuentra la clave secreta del proyecto' }, 500);
+
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, secretKey, {
+      auth: { persistSession: false },
+    });
 
     // ¿Quién llama? Tiene que ser un admin con sesión iniciada
     const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
