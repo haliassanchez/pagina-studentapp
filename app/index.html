@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Check-ins (Demo)</title>
+
+  <!-- App en el iPhone (Añadir a pantalla de inicio) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#009b79" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Check-ins" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="icon" href="icon-192.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+
+  <style>
+    /* ══════════════════════════════════════════════
+       PARÁMETROS — cambia solo estos valores
+       ══════════════════════════════════════════════ */
+    :root {
+      --icon-size:       250px;  /* tamaño del icono */
+      --content-scale:   1;      /* escala general — ej: 0.8 = más pequeño, 1.2 = más grande */
+      --icon-text-gap:   -10px;  /* espacio entre icono y texto */
+      --vertical-pos:    80px;   /* posición vertical — más grande = más arriba, más pequeño = más abajo */
+    }
+    /* ══════════════════════════════════════════════ */
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: #f3f4f6;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+
+    /* Layout: top bar + content + bottom bar */
+    .layout {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* La barra superior/inferior se extienden bajo el notch y la barra de inicio del iPhone */
+    .topbar {
+      flex-shrink: 0;
+      height: calc(56px + env(safe-area-inset-top));
+      padding: env(safe-area-inset-top) 8px 0;
+      background: #009b79;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+    }
+
+    .content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px var(--vertical-pos);
+    }
+
+    .bottombar {
+      flex-shrink: 0;
+      height: calc(56px + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      background: #009b79;
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+
+    /* Icon ping animation */
+    .icon-area {
+      position: relative;
+      width: var(--icon-size);
+      height: calc(var(--icon-size) * 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+    }
+
+    .icon-ping {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: var(--icon-size);
+      animation: pingPin 0.9s cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+
+    .icon-main {
+      position: relative;
+      z-index: 1;
+      width: var(--icon-size);
+    }
+
+    @keyframes pingPin {
+      0%   { transform: translate(-50%,-50%) scale(1);   opacity: 0.55; }
+      70%  { transform: translate(-50%,-50%) scale(1.85); opacity: 0;    }
+      100% { transform: translate(-50%,-50%) scale(1.85); opacity: 0;    }
+    }
+
+    /* Editable fields */
+    [contenteditable] {
+      outline: none;
+      border-bottom: 2px dashed transparent;
+      transition: border-color 0.2s;
+      cursor: text;
+      min-width: 40px;
+    }
+    [contenteditable]:hover,
+    [contenteditable]:focus { border-color: #009b79; }
+
+    /* ── Marca DEMO ── */
+    .demo-badge {
+      background: #fbbf24;
+      color: #1f2937;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-left: 10px;
+    }
+
+    .demo-watermark {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='180'%3E%3Ctext x='130' y='100' text-anchor='middle' transform='rotate(-30 130 90)' font-family='Inter,Arial,sans-serif' font-size='54' font-weight='800' fill='%23374151' fill-opacity='0.11'%3EDEMO%3C/text%3E%3C/svg%3E");
+      background-repeat: repeat;
+    }
+
+    .demo-ribbon {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: calc(56px + env(safe-area-inset-bottom));
+      background: rgba(251, 191, 36, 0.92);
+      color: #1f2937;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      z-index: 45;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;color:white;">
+      <button style="padding:0 12px;font-size:18px;background:none;border:none;color:white;cursor:pointer;">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <span style="font-weight:500;font-size:18px;">Check-ins</span>
+      <span class="demo-badge">DEMO</span>
+    </div>
+    <div style="display:flex;align-items:center;font-size:14px;padding-right:8px;">
+      <span style="padding:0 8px;color:rgba(187,236,224,0.85);">NL</span>
+      <span style="padding:0 8px;font-weight:600;color:white;">EN</span>
+    </div>
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="content">
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;transform:scale(var(--content-scale));transform-origin:center center;">
+
+      <!-- Icon -->
+      <div class="icon-area">
+        <img class="icon-ping" src="icon.png" alt="" />
+        <img class="icon-main" src="icon.png" alt="check-in icon" />
+      </div>
+
+      <!-- Checked in for -->
+      <div style="color:#009b79;font-size:24px;font-weight:600;margin-top:var(--icon-text-gap);">
+        Checked in for
+      </div>
+
+      <!-- Activity name (editable) -->
+      <div contenteditable="true" spellcheck="false" id="activityName"
+           style="font-size:24px;font-weight:600;color:#374151;margin-top:4px;">
+        Activity
+      </div>
+
+      <!-- Profile photo -->
+      <div style="margin-top:16px;position:relative;cursor:pointer;" class="group"
+           onclick="document.getElementById('photoInput').click()">
+        <img id="profilePhoto"
+             style="width:160px;height:160px;border-radius:9999px;object-fit:cover;border:2px solid #d1d5db;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
+             src="https://ui-avatars.com/api/?name=User&background=d1d5db&color=9ca3af&size=400"
+             alt="Profile" />
+        <div style="position:absolute;inset:0;border-radius:9999px;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;"
+             class="photo-overlay">
+          <i class="fa-solid fa-camera" style="color:white;font-size:22px;"></i>
+        </div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none;" />
+
+      <!-- Person name (editable) -->
+      <div contenteditable="true" spellcheck="false" id="personName"
+           style="font-size:19px;font-weight:700;color:#374151;margin-top:12px;">
+        Student name
+      </div>
+
+      <!-- Institution (editable) -->
+      <div contenteditable="true" spellcheck="false" id="institution"
+           style="font-size:19px;font-weight:400;color:#374151;margin-top:4px;">
+        University
+      </div>
+
+      <!-- Date/time -->
+      <div id="datetime" style="font-size:16px;color:#374151;margin-top:6px;"></div>
+
+      <!-- Show activity button -->
+      <div style="margin-top:16px;">
+        <button style="background:#009b79;color:white;border:none;border-radius:8px;padding:12px 32px;font-size:18px;font-weight:600;cursor:pointer;transition:background 0.2s;"
+                onmouseover="this.style.background='#007d62'" onmouseout="this.style.background='#009b79'">
+          Show activity &rarr;
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Aviso DEMO ── -->
+  <div class="demo-ribbon">Versión de demostración · no válida como check-in</div>
+
+  <!-- ── Bottom nav bar ── -->
+  <div class="bottombar">
+
+    <!-- Activities -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-solid fa-person-running" style="font-size:20px;"></i>
+      <span>Activities</span>
+    </button>
+
+    <!-- Favorites -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-regular fa-heart" style="font-size:20px;"></i>
+      <span>Favorites</span>
+    </button>
+
+    <!-- Check-ins (active) -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:white;font-size:11px;cursor:pointer;">
+      <i class="fa-solid fa-location-dot" style="font-size:20px;"></i>
+      <span style="font-weight:600;">Check-ins</span>
+    </button>
+
+    <!-- Communities -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-solid fa-people-group" style="font-size:20px;"></i>
+      <span>Communities</span>
+    </button>
+
+    <!-- Account -->
+    <button style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:rgba(187,236,224,0.85);font-size:11px;cursor:pointer;">
+      <i class="fa-regular fa-circle-user" style="font-size:20px;"></i>
+      <span>Account</span>
+    </button>
+
+  </div>
+
+</div>
+
+<!-- Marca de agua DEMO sobre toda la pantalla -->
+<div class="demo-watermark"></div>
+
+<script>
+  // ── Guardar lo que edites (así al abrir la app sigue igual) ──
+  const STORAGE_KEY = 'checkins-demo';
+  function loadSaved() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { return {}; }
+  }
+  function save(patch) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...loadSaved(), ...patch })); } catch (e) {}
+  }
+
+  const saved = loadSaved();
+  ['activityName', 'personName', 'institution'].forEach(id => {
+    const el = document.getElementById(id);
+    if (saved[id] != null) el.textContent = saved[id];
+    el.addEventListener('input', () => save({ [id]: el.textContent.trim() }));
+    // Enter = terminar de editar (sin saltos de línea)
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+  });
+
+  // Hover overlay on photo
+  const photoWrapper = document.querySelector('.group');
+  const overlay = document.querySelector('.photo-overlay');
+  photoWrapper.addEventListener('mouseenter', () => overlay.style.opacity = '1');
+  photoWrapper.addEventListener('mouseleave', () => overlay.style.opacity = '0');
+
+  // Photo upload (se reduce a 400px para poder guardarla)
+  const photoInput   = document.getElementById('photoInput');
+  const profilePhoto = document.getElementById('profilePhoto');
+  if (saved.photo) profilePhoto.src = saved.photo;
+  photoInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 400;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const s = Math.min(img.width, img.height);
+        canvas.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        profilePhoto.src = dataUrl;
+        save({ photo: dataUrl });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Belgium date & time
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  function updateClock() {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Brussels',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(now);
+    const get = t => parts.find(p => p.type === t).value;
+    const day = parseInt(get('day')), month = parseInt(get('month'));
+    const year = parseInt(get('year')), hour = parseInt(get('hour')), min = parseInt(get('minute'));
+    const dayName = DAYS[new Date(year, month-1, day).getDay()];
+    document.getElementById('datetime').textContent =
+      `${dayName} ${pad(day)}/${pad(month)}/${year} at ${pad(hour)}:${pad(min)}`;
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Registrar el service worker (necesario para que funcione como app)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>
