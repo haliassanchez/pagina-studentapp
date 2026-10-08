@@ -88,6 +88,12 @@
           <button class="btn btn-small btn-outline" type="button" onclick="closeEdit()">Cancelar</button>
           <span class="muted" id="saveStatus"></span>
         </div>
+        <div id="deleteArea" style="margin-top:20px;padding-top:16px;border-top:1px solid #f3f4f6;">
+          <button class="btn btn-small btn-danger" type="button" onclick="deleteProfile()">
+            <i class="fa-solid fa-trash"></i> Eliminar perfil
+          </button>
+          <p class="muted" style="margin-top:6px;">Borra la cuenta, su foto y todos sus check-ins. No se puede deshacer.</p>
+        </div>
       </form>
 
       <div class="card">
@@ -120,13 +126,14 @@
 <script>
   let people = [];
   let editing = null;
+  let me = null;
 
   async function start() {
     if (!(await hasSession())) {
       document.getElementById('loginScreen').classList.remove('hidden');
       return;
     }
-    const me = await getMyProfile();
+    me = await getMyProfile();
     if (!me || me.role !== 'admin') {
       document.getElementById('denied').classList.remove('hidden');
       return;
@@ -186,6 +193,7 @@
     document.getElementById('roleSelect').value = p.role;
     document.getElementById('photoFile').value = '';
     document.getElementById('saveStatus').textContent = '';
+    document.getElementById('deleteArea').classList.toggle('hidden', p.id === me.id);  // no puedes borrarte a ti mismo
     document.getElementById('editPhoto').src = await photoUrl(p.photo_path, p.full_name || p.email);
     document.getElementById('editForm').classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -237,6 +245,26 @@
     closeEdit();
     loadPeople();
   });
+
+  async function deleteProfile() {
+    const p = editing;
+    const label = p.full_name || p.email;
+    if (!confirm(`¿Eliminar el perfil de ${label}?\n\nSe borrarán su cuenta, su foto y todos sus check-ins. No se puede deshacer.`)) return;
+    const typed = prompt(`Para confirmar, escribe el email de la cuenta:\n${p.email}`);
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== (p.email || '').toLowerCase()) {
+      alert('El email no coincide. No se ha eliminado nada.');
+      return;
+    }
+
+    const status = document.getElementById('saveStatus');
+    status.textContent = 'Eliminando…';
+    if (p.photo_path) await sb.storage.from('photos').remove([p.photo_path]);
+    const { error } = await sb.rpc('delete_user', { p_user_id: p.id });
+    if (error) { status.textContent = 'Error: ' + error.message; return; }
+    closeEdit();
+    loadPeople();
+  }
 
   // ── Actividades ──
   async function loadActivities() {
