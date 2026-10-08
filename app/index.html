@@ -44,11 +44,12 @@
     }
 
     /* Layout: top bar + content + bottom bar */
+    /* Fijado a los 4 bordes: en iOS (modo app) 100vh/100dvh deja un hueco abajo */
     .layout {
+      position: fixed;
+      inset: 0;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      height: 100dvh;
       overflow: hidden;
     }
 
