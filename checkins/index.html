@@ -155,6 +155,7 @@
       <span class="topbar-title" id="title">Check-ins</span>
     </div>
     <div style="display:flex;align-items:center;font-size:14px;padding-right:8px;">
+      <a class="topbar-pill hidden" id="panelSwitch" href="admin.html"><i class="fa-solid fa-shield-halved"></i> <span>Admin</span></a>
       <span style="padding:0 8px;color:rgba(187,236,224,0.85);">NL</span>
       <span style="padding:0 8px;font-weight:600;color:white;">EN</span>
     </div>
@@ -303,6 +304,15 @@
         document.getElementById('staffLinks').classList.remove('hidden');
       }
       if (profile.role === 'admin') document.getElementById('adminLink').classList.remove('hidden');
+      // Botón arriba para saltar al panel: solo lo ven admin y personal
+      const panelSwitch = document.getElementById('panelSwitch');
+      if (profile.role === 'admin') {
+        panelSwitch.classList.remove('hidden');
+      } else if (profile.role === 'staff') {
+        panelSwitch.href = 'staff.html';
+        panelSwitch.querySelector('span').textContent = 'Verificar';
+        panelSwitch.classList.remove('hidden');
+      }
 
       await Promise.all([loadActivities(), loadLatestCheckin()]);
 
