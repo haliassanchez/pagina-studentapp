@@ -76,8 +76,8 @@
 
     .bottombar {
       flex-shrink: 0;
-      height: calc(56px + env(safe-area-inset-bottom));
-      padding-bottom: env(safe-area-inset-bottom);
+      height: calc(56px + env(safe-area-inset-bottom) / 3);
+      padding-bottom: calc(env(safe-area-inset-bottom) / 3);
       background: #009b79;
       display: flex;
       align-items: center;
@@ -151,7 +151,7 @@
     .demo-ribbon {
       position: absolute;
       left: 0; right: 0;
-      bottom: calc(56px + env(safe-area-inset-bottom));
+      bottom: calc(56px + env(safe-area-inset-bottom) / 3);
       background: rgba(251, 191, 36, 0.92);
       color: #1f2937;
       text-align: center;
@@ -286,6 +286,27 @@
 <div class="demo-watermark"></div>
 
 <script>
+  // ── Pantalla completa en modo app (iOS) ──
+  // En iOS, abierta desde la pantalla de inicio, la altura que da el navegador es más corta
+  // que la pantalla real y deja un hueco debajo de la barra. Usamos la altura real.
+  function fitScreen() {
+    const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    if (!standalone) return;
+    const portrait = window.innerHeight >= window.innerWidth;
+    const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    const layout = document.querySelector('.layout');
+    if (window.innerHeight < screenH) {
+      layout.style.bottom = 'auto';
+      layout.style.height = screenH + 'px';
+    } else {
+      layout.style.bottom = '';
+      layout.style.height = '';
+    }
+  }
+  fitScreen();
+  window.addEventListener('resize', fitScreen);
+  window.addEventListener('orientationchange', () => setTimeout(fitScreen, 300));
+
   // ── Guardar lo que edites (así al abrir la app sigue igual) ──
   const STORAGE_KEY = 'checkins-demo';
   function loadSaved() {
