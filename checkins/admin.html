@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Administración</title>
+  <link rel="icon" href="icon-192.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tabs button { flex: 1; }
+    .person { padding: 10px 0; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+    .person:last-child { border-bottom: none; }
+    .badge { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #e5e7eb; }
+    .badge.staff { background: #dbeafe; color: #1e40af; }
+    .badge.admin { background: #fde68a; color: #92400e; }
+    .badge.incomplete { background: #fee2e2; color: #991b1b; }
+    label { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+    select.input { appearance: auto; }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen hidden">
+  <form class="login-card" id="loginForm">
+    <img src="icon.png" alt="" />
+    <h1>Administración</h1>
+    <input class="input" name="email" type="email" placeholder="Email" autocomplete="username" required />
+    <input class="input" name="password" type="password" placeholder="Contraseña" autocomplete="current-password" required />
+    <button class="btn" type="submit">Entrar</button>
+    <div class="login-error"></div>
+  </form>
+</div>
+
+<div id="denied" class="login-screen hidden">
+  <div class="login-card">
+    <i class="fa-solid fa-lock" style="font-size:56px;color:#d1d5db;"></i>
+    <h2 style="font-size:20px;font-weight:700;">Solo para administradores</h2>
+    <button class="btn btn-small" onclick="logout()">Cerrar sesión</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <span class="topbar-title">Administración</span>
+    <div>
+      <a class="topbar-link" href="staff.html">Verificar</a>
+      <button class="topbar-link" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="tabs">
+      <button class="btn btn-small" id="tabPeople" onclick="showSection('people')">Estudiantes</button>
+      <button class="btn btn-small btn-outline" id="tabActivities" onclick="showSection('activities')">Actividades</button>
+    </div>
+
+    <!-- ── Estudiantes ── -->
+    <div id="section-people">
+      <div class="card">
+        <p class="muted">Para añadir un estudiante: Supabase → <b>Authentication → Users → Add user → Create new user</b>
+          (email + contraseña, marca "Auto Confirm User"). Aparecerá aquí abajo para completar su perfil.</p>
+      </div>
+
+      <form class="card hidden" id="editForm">
+        <h2 id="editTitle">Editar perfil</h2>
+        <div class="row" style="align-items:flex-start;">
+          <img id="editPhoto" class="avatar-sm" style="width:96px;height:96px;" alt="" />
+          <div class="grow">
+            <label for="photoFile">Foto</label>
+            <input type="file" id="photoFile" accept="image/*" />
+          </div>
+        </div>
+        <label for="fullName">Nombre completo</label>
+        <input class="input" id="fullName" required />
+        <label for="institutionInput">Universidad</label>
+        <input class="input" id="institutionInput" />
+        <label for="roleSelect">Rol</label>
+        <select class="input" id="roleSelect">
+          <option value="student">Estudiante</option>
+          <option value="staff">Personal (verifica check-ins)</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <div class="row" style="margin-top:16px;">
+          <button class="btn btn-small" type="submit">Guardar</button>
+          <button class="btn btn-small btn-outline" type="button" onclick="closeEdit()">Cancelar</button>
+          <span class="muted" id="saveStatus"></span>
+        </div>
+      </form>
+
+      <div class="card">
+        <input class="input" id="search" placeholder="Buscar por nombre o email" style="margin-bottom:8px;" />
+        <div id="peopleList" class="muted">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- ── Actividades ── -->
+    <div id="section-activities" class="hidden">
+      <form class="card" id="activityForm">
+        <h2>Nueva actividad</h2>
+        <label for="actName">Nombre</label>
+        <input class="input" id="actName" placeholder="Ej: Fitness" required />
+        <label for="actLocation">Lugar</label>
+        <input class="input" id="actLocation" placeholder="Ej: Sportcentrum" />
+        <button class="btn btn-small" type="submit" style="margin-top:12px;">Añadir</button>
+      </form>
+      <div class="card">
+        <h2>Actividades</h2>
+        <div id="activityList" class="muted">Cargando…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+  let people = [];
+  let editing = null;
+
+  async function start() {
+    if (!(await hasSession())) {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      return;
+    }
+    const me = await getMyProfile();
+    if (!me || me.role !== 'admin') {
+      document.getElementById('denied').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('app').classList.remove('hidden');
+    loadPeople();
+    loadActivities();
+  }
+
+  setupLogin(document.getElementById('loginForm'), () => {
+    document.getElementById('loginScreen').classList.add('hidden');
+    start();
+  });
+
+  function showSection(name) {
+    document.getElementById('section-people').classList.toggle('hidden', name !== 'people');
+    document.getElementById('section-activities').classList.toggle('hidden', name !== 'activities');
+    document.getElementById('tabPeople').classList.toggle('btn-outline', name !== 'people');
+    document.getElementById('tabActivities').classList.toggle('btn-outline', name !== 'activities');
+  }
+
+  // ── Estudiantes ──
+  const ROLE_LABEL = { student: 'Estudiante', staff: 'Personal', admin: 'Admin' };
+
+  async function loadPeople() {
+    const { data, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) { document.getElementById('peopleList').textContent = error.message; return; }
+    people = data;
+    renderPeople();
+  }
+
+  function renderPeople() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const list = document.getElementById('peopleList');
+    const shown = people.filter(p => !q || (p.full_name + ' ' + p.email).toLowerCase().includes(q));
+    if (!shown.length) { list.textContent = 'No hay cuentas.'; return; }
+    list.classList.remove('muted');
+    list.innerHTML = shown.map(p => `
+      <div class="person row" data-id="${p.id}">
+        <div class="grow">
+          <div style="font-weight:600;">${p.full_name ? esc(p.full_name) : '<span class="badge incomplete">Sin completar</span>'}</div>
+          <div class="muted">${esc(p.email)}${p.institution ? ' · ' + esc(p.institution) : ''}</div>
+        </div>
+        <span class="badge ${p.role}">${ROLE_LABEL[p.role]}</span>
+        <i class="fa-solid fa-chevron-right muted"></i>
+      </div>`).join('');
+    list.querySelectorAll('.person').forEach(el =>
+      el.addEventListener('click', () => openEdit(people.find(p => p.id === el.dataset.id))));
+  }
+  document.getElementById('search').addEventListener('input', renderPeople);
+
+  async function openEdit(p) {
+    editing = p;
+    document.getElementById('editTitle').textContent = p.email;
+    document.getElementById('fullName').value = p.full_name;
+    document.getElementById('institutionInput').value = p.institution;
+    document.getElementById('roleSelect').value = p.role;
+    document.getElementById('photoFile').value = '';
+    document.getElementById('saveStatus').textContent = '';
+    document.getElementById('editPhoto').src = await photoUrl(p.photo_path, p.full_name || p.email);
+    document.getElementById('editForm').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeEdit() {
+    editing = null;
+    document.getElementById('editForm').classList.add('hidden');
+  }
+
+  // Recorta la foto a cuadrado de 600px antes de subirla
+  function squareJpeg(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 600, s = Math.min(img.width, img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        canvas.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        canvas.toBlob(resolve, 'image/jpeg', 0.85);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  document.getElementById('editForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = document.getElementById('saveStatus');
+    status.textContent = 'Guardando…';
+
+    const update = {
+      full_name:   document.getElementById('fullName').value.trim(),
+      institution: document.getElementById('institutionInput').value.trim(),
+      role:        document.getElementById('roleSelect').value,
+    };
+
+    const file = document.getElementById('photoFile').files[0];
+    if (file) {
+      const path = `${editing.id}.jpg`;
+      const { error } = await sb.storage.from('photos')
+        .upload(path, await squareJpeg(file), { upsert: true, contentType: 'image/jpeg' });
+      if (error) { status.textContent = 'Error al subir la foto: ' + error.message; return; }
+      update.photo_path = path;
+    }
+
+    const { error } = await sb.from('profiles').update(update).eq('id', editing.id);
+    if (error) { status.textContent = 'Error: ' + error.message; return; }
+    closeEdit();
+    loadPeople();
+  });
+
+  // ── Actividades ──
+  async function loadActivities() {
+    const { data, error } = await sb.from('activities').select('*').order('name');
+    const list = document.getElementById('activityList');
+    if (error) { list.textContent = error.message; return; }
+    if (!data.length) { list.textContent = 'Todavía no hay actividades.'; return; }
+    list.classList.remove('muted');
+    list.innerHTML = data.map(a => `
+      <div class="row" style="padding:10px 0;border-bottom:1px solid #f3f4f6;">
+        <div class="grow">
+          <div style="font-weight:600;${a.active ? '' : 'color:#9ca3af;text-decoration:line-through;'}">${esc(a.name)}</div>
+          <div class="muted">${esc(a.location)}</div>
+        </div>
+        <button class="btn btn-small ${a.active ? 'btn-outline' : ''}" data-id="${a.id}" data-active="${a.active}">
+          ${a.active ? 'Desactivar' : 'Activar'}
+        </button>
+      </div>`).join('');
+    list.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', async () => {
+      await sb.from('activities').update({ active: b.dataset.active !== 'true' }).eq('id', b.dataset.id);
+      loadActivities();
+    }));
+  }
+
+  document.getElementById('activityForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('actName').value.trim();
+    const location = document.getElementById('actLocation').value.trim();
+    const { error } = await sb.from('activities').insert({ name, location });
+    if (error) { alert(error.message); return; }
+    e.target.reset();
+    loadActivities();
+  });
+
+  start();
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Verificar check-ins</title>
+  <meta name="apple-mobile-web-app-title" content="Verificar" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .result { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .result .status { font-size: 20px; font-weight: 800; padding: 8px 16px; border-radius: 10px; margin-bottom: 8px; }
+    .ok   { background: #d1fae5; color: #065f46; }
+    .warn { background: #fef3c7; color: #92400e; }
+    .bad  { background: #fee2e2; color: #991b1b; }
+    .result img { width: 180px; height: 180px; border-radius: 9999px; object-fit: cover; border: 2px solid #d1d5db; }
+    .code-input { text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; text-align: center; font-size: 22px; }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen hidden">
+  <form class="login-card" id="loginForm">
+    <img src="icon.png" alt="" />
+    <h1>Verificar check-ins</h1>
+    <input class="input" name="email" type="email" placeholder="Email" autocomplete="username" required />
+    <input class="input" name="password" type="password" placeholder="Contraseña" autocomplete="current-password" required />
+    <button class="btn" type="submit">Entrar</button>
+    <div class="login-error"></div>
+  </form>
+</div>
+
+<div id="denied" class="login-screen hidden">
+  <div class="login-card">
+    <i class="fa-solid fa-lock" style="font-size:56px;color:#d1d5db;"></i>
+    <h2 style="font-size:20px;font-weight:700;">Solo para personal</h2>
+    <p class="muted">Tu cuenta no tiene permiso para verificar check-ins.</p>
+    <button class="btn btn-small" onclick="logout()">Cerrar sesión</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <span class="topbar-title">Verificar check-ins</span>
+    <div>
+      <a class="topbar-link hidden" id="adminLink" href="admin.html">Admin</a>
+      <button class="topbar-link" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="page">
+    <form class="card" id="verifyForm">
+      <h2>Código del estudiante</h2>
+      <div class="row">
+        <input class="input code-input grow" name="code" maxlength="6" placeholder="A1B2C3" autocomplete="off" required />
+        <button class="btn" type="submit">Verificar</button>
+      </div>
+      <p class="muted" style="margin-top:8px;">O escanea con la cámara del iPhone el QR que enseña el estudiante en "Show activity".</p>
+    </form>
+
+    <div class="card hidden" id="result"></div>
+
+    <div class="card">
+      <h2>Check-ins de hoy</h2>
+      <div id="todayList" class="muted">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+  const SELECT = 'code, created_at, activity:activities(name, location), student:profiles(full_name, institution, photo_path)';
+
+  async function start() {
+    if (!(await hasSession())) {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      return;
+    }
+    const profile = await getMyProfile();
+    if (!profile || !['staff', 'admin'].includes(profile.role)) {
+      document.getElementById('denied').classList.remove('hidden');
+      return;
+    }
+    if (profile.role === 'admin') document.getElementById('adminLink').classList.remove('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    const code = new URLSearchParams(location.search).get('code');
+    if (code) {
+      document.querySelector('[name=code]').value = code;
+      verify(code);
+    }
+    loadToday();
+  }
+
+  setupLogin(document.getElementById('loginForm'), () => {
+    document.getElementById('loginScreen').classList.add('hidden');
+    start();
+  });
+
+  document.getElementById('verifyForm').addEventListener('submit', e => {
+    e.preventDefault();
+    verify(e.target.code.value);
+  });
+
+  async function verify(rawCode) {
+    const code = rawCode.trim().toUpperCase();
+    const box = document.getElementById('result');
+    box.classList.remove('hidden');
+    box.innerHTML = '<div class="muted">Comprobando…</div>';
+
+    const { data, error } = await sb.from('checkins').select(SELECT).eq('code', code).maybeSingle();
+    if (error) { box.innerHTML = `<div class="result"><div class="status bad">Error</div><div>${esc(error.message)}</div></div>`; return; }
+    if (!data) {
+      box.innerHTML = `<div class="result"><div class="status bad"><i class="fa-solid fa-xmark"></i> Código no válido</div>
+        <div class="muted">No existe ningún check-in con el código ${esc(code)}.</div></div>`;
+      return;
+    }
+
+    const today = isToday(data.created_at);
+    const photo = await photoUrl(data.student.photo_path, data.student.full_name);
+    box.innerHTML = `
+      <div class="result">
+        <div class="status ${today ? 'ok' : 'warn'}">
+          ${today ? '<i class="fa-solid fa-check"></i> Check-in válido (hoy)' : '<i class="fa-solid fa-triangle-exclamation"></i> Check-in de otro día'}
+        </div>
+        <img src="${esc(photo)}" alt="" />
+        <div style="font-size:20px;font-weight:700;margin-top:6px;">${esc(data.student.full_name)}</div>
+        <div>${esc(data.student.institution)}</div>
+        <div style="font-size:18px;font-weight:600;color:#009b79;margin-top:8px;">${esc(data.activity.name)}</div>
+        <div class="muted">${esc(data.activity.location)}</div>
+        <div>${esc(formatCheckinTime(data.created_at))}</div>
+        <div class="muted" style="margin-top:6px;">Comprueba que la foto coincide con la persona.</div>
+      </div>`;
+  }
+
+  async function loadToday() {
+    const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
+    const { data, error } = await sb.from('checkins').select(SELECT)
+      .gte('created_at', since).order('created_at', { ascending: false });
+    const list = document.getElementById('todayList');
+    if (error) { list.textContent = error.message; return; }
+    const today = data.filter(c => isToday(c.created_at));
+    if (!today.length) { list.textContent = 'Todavía no hay check-ins hoy.'; return; }
+    list.classList.remove('muted');
+    list.innerHTML = today.map(c => `
+      <div class="row" style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
+        <div class="grow">
+          <div style="font-weight:600;">${esc(c.student.full_name)}</div>
+          <div class="muted">${esc(c.activity.name)} · ${esc(formatCheckinTime(c.created_at).split(' at ')[1])}</div>
+        </div>
+        <div style="font-weight:700;letter-spacing:0.1em;color:#009b79;">${esc(c.code)}</div>
+      </div>`).join('');
+  }
+
+  start();
+</script>
+</body>
+</html>

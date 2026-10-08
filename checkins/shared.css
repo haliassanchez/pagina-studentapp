@@ -1,0 +1,99 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  height: 100%; width: 100%;
+  font-family: 'Inter', sans-serif;
+  background: #f3f4f6;
+  color: #374151;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img { display: block; max-width: 100%; }
+button, input, select { font-family: inherit; font-size: inherit; }
+h1, h2, h3, p { margin: 0; }
+.hidden { display: none !important; }
+
+/* ── Barra superior ── */
+.topbar {
+  flex-shrink: 0;
+  height: 56px;
+  background: #009b79;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  z-index: 50;
+}
+.topbar-title { font-weight: 500; font-size: 18px; padding: 0 12px; }
+.topbar-link {
+  color: white; background: none; border: none; cursor: pointer;
+  font-size: 14px; padding: 8px 12px; text-decoration: none;
+}
+
+/* ── Login ── */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+.login-card img { width: 120px; margin: 0 auto 4px; }
+.login-card h1 { font-size: 24px; font-weight: 700; color: #009b79; margin-bottom: 8px; }
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  font-size: 16px;   /* 16px evita el zoom automático del iPhone */
+  outline: none;
+}
+.input:focus { border-color: #009b79; box-shadow: 0 0 0 3px rgba(0, 155, 121, 0.15); }
+
+.btn {
+  background: #009b79;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn:hover { background: #007d62; }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btn-small { padding: 8px 16px; font-size: 15px; }
+.btn-outline { background: white; color: #009b79; border: 2px solid #009b79; }
+.btn-outline:hover { background: #ecfdf5; }
+.btn-danger { background: #dc2626; }
+.btn-danger:hover { background: #b91c1c; }
+
+.login-error { color: #dc2626; font-size: 14px; min-height: 18px; }
+
+/* ── Tarjetas y listas ── */
+.page { max-width: 720px; margin: 0 auto; padding: 16px; }
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card h2 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.muted { color: #6b7280; font-size: 14px; }
+.row { display: flex; align-items: center; gap: 12px; }
+.grow { flex: 1; min-width: 0; }
+.avatar-sm { width: 48px; height: 48px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }

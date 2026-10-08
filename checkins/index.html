@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Check-ins</title>
+
+  <!-- App en el iPhone (Añadir a pantalla de inicio). No añadir viewport-fit=cover,
+       status-bar-style ni manifest: en iOS 26 dejan un hueco debajo de la barra. -->
+  <meta name="apple-mobile-web-app-title" content="Check-ins" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="icon" href="icon-192.png" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="shared.css" />
+
+  <style>
+    /* ══════════════════════════════════════════════
+       PARÁMETROS — cambia solo estos valores
+       ══════════════════════════════════════════════ */
+    :root {
+      --icon-size:       250px;  /* tamaño del icono */
+      --content-scale:   1;      /* escala general — ej: 0.8 = más pequeño, 1.2 = más grande */
+      --icon-text-gap:   -10px;  /* espacio entre icono y texto */
+      --vertical-pos:    80px;   /* posición vertical — más grande = más arriba, más pequeño = más abajo */
+    }
+    /* ══════════════════════════════════════════════ */
+
+    html, body { overflow: hidden; }
+
+    .layout {
+      position: relative;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .content { flex: 1; overflow: hidden; position: relative; }
+
+    .view { position: absolute; inset: 0; overflow-y: auto; }
+    .view-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px var(--vertical-pos);
+    }
+
+    .bottombar {
+      flex-shrink: 0;
+      height: 56px;
+      background: #009b79;
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+    .tab {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px;
+      background: none; border: none;
+      color: rgba(187, 236, 224, 0.85);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .tab i { font-size: 20px; }
+    .tab.active { color: white; }
+    .tab.active span { font-weight: 600; }
+
+    /* Icon ping animation */
+    .icon-area {
+      position: relative;
+      width: var(--icon-size);
+      height: calc(var(--icon-size) * 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
+    }
+    .icon-ping {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: var(--icon-size);
+      animation: pingPin 0.9s cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+    .icon-main { position: relative; z-index: 1; width: var(--icon-size); }
+    @keyframes pingPin {
+      0%   { transform: translate(-50%,-50%) scale(1);    opacity: 0.55; }
+      70%  { transform: translate(-50%,-50%) scale(1.85); opacity: 0;    }
+      100% { transform: translate(-50%,-50%) scale(1.85); opacity: 0;    }
+    }
+
+    .profile-photo {
+      width: 160px; height: 160px;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 2px solid #d1d5db;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Lista de actividades */
+    .activity-item { display: flex; align-items: center; gap: 12px; }
+    .activity-item .name { font-weight: 600; font-size: 17px; }
+
+    /* Ventana "Show activity" */
+    .modal {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .modal-box {
+      background: white; border-radius: 16px;
+      padding: 24px; width: 100%; max-width: 340px;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    #qr { padding: 8px; background: white; }
+    .code { font-size: 32px; font-weight: 800; letter-spacing: 0.15em; color: #009b79; }
+
+    .spinner {
+      width: 36px; height: 36px; border-radius: 9999px;
+      border: 4px solid #d1fae5; border-top-color: #009b79;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ── Cargando ── -->
+<div id="loading" class="login-screen"><div class="spinner"></div></div>
+
+<!-- ── Login ── -->
+<div id="loginScreen" class="login-screen hidden">
+  <form class="login-card" id="loginForm">
+    <img src="icon.png" alt="" />
+    <h1>Check-ins</h1>
+    <input class="input" name="email" type="email" placeholder="Email" autocomplete="username" required />
+    <input class="input" name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+    <button class="btn" type="submit">Log in</button>
+    <div class="login-error"></div>
+  </form>
+</div>
+
+<!-- ── App ── -->
+<div class="layout hidden" id="app">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;">
+      <span class="topbar-title" id="title">Check-ins</span>
+    </div>
+    <div style="display:flex;align-items:center;font-size:14px;padding-right:8px;">
+      <span style="padding:0 8px;color:rgba(187,236,224,0.85);">NL</span>
+      <span style="padding:0 8px;font-weight:600;color:white;">EN</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Check-in de hoy -->
+    <section class="view view-center" id="view-checkins">
+      <div id="checkinCard" class="hidden" style="display:flex;flex-direction:column;align-items:center;text-align:center;transform:scale(var(--content-scale));transform-origin:center center;">
+        <div class="icon-area">
+          <img class="icon-ping" src="icon.png" alt="" />
+          <img class="icon-main" src="icon.png" alt="check-in icon" />
+        </div>
+        <div style="color:#009b79;font-size:24px;font-weight:600;margin-top:var(--icon-text-gap);">Checked in for</div>
+        <div id="activityName" style="font-size:24px;font-weight:600;color:#374151;margin-top:4px;"></div>
+        <img id="profilePhoto" class="profile-photo" style="margin-top:16px;" alt="Profile" />
+        <div id="personName" style="font-size:19px;font-weight:700;color:#374151;margin-top:12px;"></div>
+        <div id="institution" style="font-size:19px;font-weight:400;color:#374151;margin-top:4px;"></div>
+        <div id="datetime" style="font-size:16px;color:#374151;margin-top:6px;"></div>
+        <div style="margin-top:16px;">
+          <button class="btn" id="showActivityBtn">Show activity &rarr;</button>
+        </div>
+      </div>
+
+      <div id="noCheckin" class="hidden" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;">
+        <i class="fa-solid fa-location-dot" style="font-size:64px;color:#d1d5db;"></i>
+        <div style="font-size:20px;font-weight:600;">No check-in today</div>
+        <div class="muted">Choose an activity to check in.</div>
+        <button class="btn" onclick="showTab('activities')">See activities</button>
+      </div>
+    </section>
+
+    <!-- Actividades -->
+    <section class="view hidden" id="view-activities">
+      <div class="page" id="activityList"></div>
+    </section>
+
+    <!-- Cuenta -->
+    <section class="view hidden" id="view-account">
+      <div class="page">
+        <div class="card" style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <img id="accountPhoto" class="profile-photo" style="width:96px;height:96px;" alt="" />
+          <div id="accountName" style="font-weight:700;font-size:19px;margin-top:6px;"></div>
+          <div id="accountInstitution"></div>
+          <div id="accountEmail" class="muted"></div>
+        </div>
+        <div class="card hidden" id="staffLinks">
+          <div class="row" style="flex-wrap:wrap;">
+            <a class="btn btn-small btn-outline" href="staff.html" style="text-decoration:none;">Verificar check-ins</a>
+            <a class="btn btn-small btn-outline hidden" id="adminLink" href="admin.html" style="text-decoration:none;">Administración</a>
+          </div>
+        </div>
+        <button class="btn btn-danger" style="width:100%;" onclick="logout()">Log out</button>
+      </div>
+    </section>
+
+    <!-- Pestañas sin contenido todavía -->
+    <section class="view view-center hidden" id="view-soon">
+      <div class="muted" style="font-size:16px;">Coming soon</div>
+    </section>
+
+  </div>
+
+  <!-- Bottom nav bar -->
+  <div class="bottombar">
+    <button class="tab" data-tab="activities"><i class="fa-solid fa-person-running"></i><span>Activities</span></button>
+    <button class="tab" data-tab="soon" data-title="Favorites"><i class="fa-regular fa-heart"></i><span>Favorites</span></button>
+    <button class="tab" data-tab="checkins"><i class="fa-solid fa-location-dot"></i><span>Check-ins</span></button>
+    <button class="tab" data-tab="soon" data-title="Communities"><i class="fa-solid fa-people-group"></i><span>Communities</span></button>
+    <button class="tab" data-tab="account"><i class="fa-regular fa-circle-user"></i><span>Account</span></button>
+  </div>
+</div>
+
+<!-- ── Ventana "Show activity": código y QR para el personal ── -->
+<div class="modal hidden" id="activityModal" onclick="if (event.target === this) this.classList.add('hidden')">
+  <div class="modal-box">
+    <div id="modalActivity" style="font-size:20px;font-weight:700;"></div>
+    <div id="modalLocation" class="muted"></div>
+    <div id="qr"></div>
+    <div class="muted">Check-in code</div>
+    <div class="code" id="modalCode"></div>
+    <div id="modalTime" class="muted"></div>
+    <button class="btn btn-small" style="margin-top:8px;" onclick="document.getElementById('activityModal').classList.add('hidden')">Close</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+  let profile = null;
+  let activities = [];
+  let currentCheckin = null;   // { code, created_at, activity: { name, location } }
+
+  // ── Pestañas ──
+  const TITLES = { checkins: 'Check-ins', activities: 'Activities', account: 'Account' };
+  function showTab(tab, title) {
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    document.getElementById('view-' + tab).classList.remove('hidden');
+    document.querySelectorAll('.tab').forEach(b =>
+      b.classList.toggle('active', b.dataset.tab === tab && (tab !== 'soon' || b.dataset.title === title)));
+    document.getElementById('title').textContent = title || TITLES[tab];
+    if (tab === 'checkins') renderCheckin();
+  }
+  document.querySelectorAll('.tab').forEach(b =>
+    b.addEventListener('click', () => showTab(b.dataset.tab, b.dataset.title)));
+
+  // ── Inicio ──
+  async function start() {
+    if (await hasSession()) {
+      await loadApp();
+    } else {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+  }
+  setupLogin(document.getElementById('loginForm'), () => {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('loading').classList.remove('hidden');
+    loadApp();
+  });
+
+  async function loadApp() {
+    try {
+      profile = await getMyProfile();
+      const photo = await photoUrl(profile.photo_path, profile.full_name);
+      document.getElementById('profilePhoto').src = photo;
+      document.getElementById('accountPhoto').src = photo;
+      document.getElementById('personName').textContent = profile.full_name;
+      document.getElementById('institution').textContent = profile.institution;
+      document.getElementById('accountName').textContent = profile.full_name || '(perfil sin completar)';
+      document.getElementById('accountInstitution').textContent = profile.institution;
+      document.getElementById('accountEmail').textContent = profile.email;
+      if (profile.role === 'staff' || profile.role === 'admin') {
+        document.getElementById('staffLinks').classList.remove('hidden');
+      }
+      if (profile.role === 'admin') document.getElementById('adminLink').classList.remove('hidden');
+
+      await Promise.all([loadActivities(), loadLatestCheckin()]);
+
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      showTab('checkins');
+    } catch (err) {
+      alert('Error: ' + err.message);
+      logout();
+    }
+  }
+
+  async function loadActivities() {
+    const { data, error } = await sb.from('activities').select('*').eq('active', true).order('name');
+    if (error) throw error;
+    activities = data;
+    const list = document.getElementById('activityList');
+    if (!activities.length) {
+      list.innerHTML = '<div class="card muted">No activities available.</div>';
+      return;
+    }
+    list.innerHTML = activities.map(a => `
+      <div class="card activity-item">
+        <div class="grow">
+          <div class="name">${esc(a.name)}</div>
+          <div class="muted">${esc(a.location)}</div>
+        </div>
+        <button class="btn btn-small" data-id="${a.id}">Check in</button>
+      </div>`).join('');
+    list.querySelectorAll('button[data-id]').forEach(b =>
+      b.addEventListener('click', () => checkIn(Number(b.dataset.id), b)));
+  }
+
+  async function loadLatestCheckin() {
+    const { data, error } = await sb.from('checkins')
+      .select('code, created_at, activity:activities(name, location)')
+      .eq('student_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    currentCheckin = data[0] || null;
+  }
+
+  async function checkIn(activityId, button) {
+    const activity = activities.find(a => a.id === activityId);
+    if (!confirm(`Check in for ${activity.name}?`)) return;
+    button.disabled = true;
+    const { data, error } = await sb.rpc('do_checkin', { p_activity_id: activityId });
+    button.disabled = false;
+    if (error) { alert(error.message); return; }
+    currentCheckin = { code: data.code, created_at: data.created_at, activity: { name: activity.name, location: activity.location } };
+    showTab('checkins');
+  }
+
+  // ── Pantalla de check-in (solo si es de hoy) ──
+  function renderCheckin() {
+    const has = currentCheckin && isToday(currentCheckin.created_at);
+    document.getElementById('checkinCard').classList.toggle('hidden', !has);
+    document.getElementById('noCheckin').classList.toggle('hidden', has);
+    if (!has) return;
+    document.getElementById('activityName').textContent = currentCheckin.activity.name;
+    document.getElementById('datetime').textContent = formatCheckinTime(currentCheckin.created_at);
+  }
+
+  document.getElementById('showActivityBtn').addEventListener('click', () => {
+    const c = currentCheckin;
+    document.getElementById('modalActivity').textContent = c.activity.name;
+    document.getElementById('modalLocation').textContent = c.activity.location;
+    document.getElementById('modalCode').textContent = c.code;
+    document.getElementById('modalTime').textContent = formatCheckinTime(c.created_at);
+    const qr = document.getElementById('qr');
+    qr.innerHTML = '';
+    new QRCode(qr, { text: new URL('staff.html?code=' + c.code, location.href).href, width: 180, height: 180 });
+    document.getElementById('activityModal').classList.remove('hidden');
+  });
+
+  // Al volver a la app, comprobar si el check-in sigue siendo de hoy
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && profile) renderCheckin();
+  });
+
+  start();
+</script>
+</body>
+</html>
