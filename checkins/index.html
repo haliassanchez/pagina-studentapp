@@ -197,11 +197,26 @@
     <section class="view hidden" id="view-account">
       <div class="page">
         <div class="card" style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;">
-          <img id="accountPhoto" class="profile-photo" style="width:96px;height:96px;" alt="" />
+          <div style="position:relative;">
+            <img id="accountPhoto" class="profile-photo" style="width:120px;height:120px;" alt="" />
+            <button id="addPhotoBtn" class="hidden" onclick="document.getElementById('photoInput').click()"
+                    style="position:absolute;right:0;bottom:0;width:38px;height:38px;border-radius:9999px;border:3px solid white;background:#009b79;color:white;cursor:pointer;">
+              <i class="fa-solid fa-camera"></i>
+            </button>
+          </div>
+          <input type="file" id="photoInput" accept="image/*" class="hidden" />
+          <div id="photoHint" class="muted" style="font-size:13px;"></div>
           <div id="accountName" style="font-weight:700;font-size:19px;margin-top:6px;"></div>
-          <div id="accountInstitution"></div>
           <div id="accountEmail" class="muted"></div>
         </div>
+        <form class="card" id="institutionForm">
+          <label for="institutionInput" style="display:block;font-weight:600;margin-bottom:8px;">University</label>
+          <div class="row">
+            <input class="input grow" id="institutionInput" maxlength="100" placeholder="Your university" />
+            <button class="btn btn-small" type="submit">Save</button>
+          </div>
+          <div id="institutionStatus" class="muted" style="margin-top:6px;font-size:13px;"></div>
+        </form>
         <div class="card hidden" id="staffLinks">
           <div class="row" style="flex-wrap:wrap;">
             <a class="btn btn-small btn-outline" href="staff.html" style="text-decoration:none;">Verificar check-ins</a>
@@ -282,14 +297,8 @@
   async function loadApp() {
     try {
       profile = await getMyProfile();
-      const photo = await photoUrl(profile.photo_path, profile.full_name);
-      document.getElementById('profilePhoto').src = photo;
-      document.getElementById('accountPhoto').src = photo;
-      document.getElementById('personName').textContent = profile.full_name;
-      document.getElementById('institution').textContent = profile.institution;
-      document.getElementById('accountName').textContent = profile.full_name || '(perfil sin completar)';
-      document.getElementById('accountInstitution').textContent = profile.institution;
-      document.getElementById('accountEmail').textContent = profile.email;
+      await renderProfile();
+      document.getElementById('institutionInput').value = profile.institution;
       if (profile.role === 'staff' || profile.role === 'admin') {
         document.getElementById('staffLinks').classList.remove('hidden');
       }
@@ -305,6 +314,62 @@
       logout();
     }
   }
+
+  async function renderProfile() {
+    const photo = await photoUrl(profile.photo_path, profile.full_name);
+    document.getElementById('profilePhoto').src = photo;
+    document.getElementById('accountPhoto').src = photo;
+    document.getElementById('personName').textContent = profile.full_name;
+    document.getElementById('institution').textContent = profile.institution;
+    document.getElementById('accountName').textContent = profile.full_name || '(perfil sin completar)';
+    document.getElementById('accountEmail').textContent = profile.email;
+    // Solo se puede poner foto si aún no hay una (para cambiarla, el admin la quita)
+    const canAddPhoto = !profile.photo_path;
+    document.getElementById('addPhotoBtn').classList.toggle('hidden', !canAddPhoto);
+    document.getElementById('photoHint').textContent = canAddPhoto
+      ? 'Add a clear photo of your face. Once saved, only an administrator can change it.'
+      : 'To change your photo, contact an administrator.';
+  }
+
+  // ── Foto de perfil (primera vez) ──
+  document.getElementById('photoInput').addEventListener('change', async function () {
+    const file = this.files[0];
+    this.value = '';
+    if (!file) return;
+    const hint = document.getElementById('photoHint');
+    const preview = URL.createObjectURL(file);
+    document.getElementById('accountPhoto').src = preview;
+    if (!confirm('Save this photo? You will not be able to change it yourself afterwards.')) {
+      await renderProfile();
+      return;
+    }
+    hint.textContent = 'Saving…';
+    const path = `${profile.id}.jpg`;
+    const { error: upErr } = await sb.storage.from('photos')
+      .upload(path, await squareJpeg(file), { contentType: 'image/jpeg' });
+    // Si la foto ya estaba subida (un intento anterior a medias), solo falta enlazarla
+    if (upErr && !/exists|duplicate/i.test(upErr.message)) {
+      hint.textContent = 'Error: ' + upErr.message;
+      return;
+    }
+    const { data, error } = await sb.rpc('set_my_photo');
+    if (error) { hint.textContent = 'Error: ' + error.message; return; }
+    profile.photo_path = data;
+    await renderProfile();
+  });
+
+  // ── Universidad ──
+  document.getElementById('institutionForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = document.getElementById('institutionStatus');
+    const value = document.getElementById('institutionInput').value.trim();
+    status.textContent = 'Saving…';
+    const { error } = await sb.rpc('set_my_institution', { p_institution: value });
+    if (error) { status.textContent = 'Error: ' + error.message; return; }
+    profile.institution = value;
+    document.getElementById('institution').textContent = value;
+    status.textContent = 'Saved ✓';
+  });
 
   async function loadActivities() {
     const { data, error } = await sb.from('activities').select('*').eq('active', true).order('name');

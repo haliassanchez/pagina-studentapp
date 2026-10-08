@@ -47,6 +47,22 @@ async function photoUrl(path, name) {
   return data?.signedUrl || initialsAvatar(name);
 }
 
+// Recorta la foto a cuadrado de 600px (JPEG) antes de subirla
+function squareJpeg(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 600, s = Math.min(img.width, img.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      canvas.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      canvas.toBlob(resolve, 'image/jpeg', 0.85);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 async function getMyProfile() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;

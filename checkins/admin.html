@@ -59,10 +59,36 @@
 
     <!-- ── Estudiantes ── -->
     <div id="section-people">
-      <div class="card">
-        <p class="muted">Para añadir un estudiante: Supabase → <b>Authentication → Users → Add user → Create new user</b>
-          (email + contraseña, marca "Auto Confirm User"). Aparecerá aquí abajo para completar su perfil.</p>
-      </div>
+      <button class="btn btn-small" id="newPersonBtn" style="width:100%;margin-bottom:12px;" onclick="openCreate()">
+        <i class="fa-solid fa-user-plus"></i> Nuevo perfil
+      </button>
+
+      <form class="card hidden" id="createForm">
+        <h2>Nuevo perfil</h2>
+        <label for="newEmail">Email</label>
+        <input class="input" id="newEmail" type="email" autocomplete="off" required />
+        <label for="newPassword">Contraseña inicial</label>
+        <div class="row">
+          <input class="input grow" id="newPassword" type="text" minlength="8" autocomplete="off" required />
+          <button class="btn btn-small btn-outline" type="button" onclick="generatePassword()">Generar</button>
+        </div>
+        <p class="muted" style="margin-top:4px;">Mínimo 8 caracteres. Dásela al estudiante en persona.</p>
+        <label for="newName">Nombre completo</label>
+        <input class="input" id="newName" required />
+        <label for="newInstitution">Universidad</label>
+        <input class="input" id="newInstitution" />
+        <label for="newRole">Rol</label>
+        <select class="input" id="newRole">
+          <option value="student">Estudiante</option>
+          <option value="staff">Personal (verifica check-ins)</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <div class="row" style="margin-top:16px;">
+          <button class="btn btn-small" type="submit">Crear</button>
+          <button class="btn btn-small btn-outline" type="button" onclick="closeCreate()">Cancelar</button>
+          <span class="muted" id="createStatus"></span>
+        </div>
+      </form>
 
       <form class="card hidden" id="editForm">
         <h2 id="editTitle">Editar perfil</h2>
@@ -71,6 +97,10 @@
           <div class="grow">
             <label for="photoFile">Foto</label>
             <input type="file" id="photoFile" accept="image/*" />
+            <button class="btn btn-small btn-outline" type="button" id="removePhotoBtn" style="margin-top:8px;" onclick="removePhoto()">
+              Quitar foto
+            </button>
+            <p class="muted" style="margin-top:4px;font-size:13px;">Al quitarla, el estudiante podrá subir una nueva desde su perfil.</p>
           </div>
         </div>
         <label for="fullName">Nombre completo</label>
@@ -194,6 +224,8 @@
     document.getElementById('photoFile').value = '';
     document.getElementById('saveStatus').textContent = '';
     document.getElementById('deleteArea').classList.toggle('hidden', p.id === me.id);  // no puedes borrarte a ti mismo
+    document.getElementById('removePhotoBtn').classList.toggle('hidden', !p.photo_path);
+    closeCreate();
     document.getElementById('editPhoto').src = await photoUrl(p.photo_path, p.full_name || p.email);
     document.getElementById('editForm').classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -204,21 +236,68 @@
     document.getElementById('editForm').classList.add('hidden');
   }
 
-  // Recorta la foto a cuadrado de 600px antes de subirla
-  function squareJpeg(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const size = 600, s = Math.min(img.width, img.height);
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = size;
-        canvas.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-        canvas.toBlob(resolve, 'image/jpeg', 0.85);
-      };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
+  // Quita la foto: el estudiante podrá subir una nueva desde su perfil
+  async function removePhoto() {
+    const p = editing;
+    if (!p.photo_path) { alert('Este perfil no tiene foto.'); return; }
+    if (!confirm(`¿Quitar la foto de ${p.full_name || p.email}?`)) return;
+    const status = document.getElementById('saveStatus');
+    status.textContent = 'Quitando foto…';
+    const { error: rmErr } = await sb.storage.from('photos').remove([p.photo_path]);
+    if (rmErr) { status.textContent = 'Error: ' + rmErr.message; return; }
+    const { error } = await sb.from('profiles').update({ photo_path: null }).eq('id', p.id);
+    if (error) { status.textContent = 'Error: ' + error.message; return; }
+    p.photo_path = null;
+    document.getElementById('editPhoto').src = initialsAvatar(p.full_name || p.email);
+    document.getElementById('removePhotoBtn').classList.add('hidden');
+    status.textContent = 'Foto quitada ✓';
   }
+
+  // ── Crear perfiles (usa la Edge Function "create-user") ──
+  function openCreate() {
+    closeEdit();
+    document.getElementById('createForm').reset();
+    document.getElementById('createStatus').textContent = '';
+    document.getElementById('createForm').classList.remove('hidden');
+    document.getElementById('newPersonBtn').classList.add('hidden');
+  }
+
+  function closeCreate() {
+    document.getElementById('createForm').classList.add('hidden');
+    document.getElementById('newPersonBtn').classList.remove('hidden');
+  }
+
+  function generatePassword() {
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = crypto.getRandomValues(new Uint8Array(10));
+    document.getElementById('newPassword').value = Array.from(bytes, b => chars[b % chars.length]).join('');
+  }
+
+  document.getElementById('createForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = document.getElementById('createStatus');
+    status.textContent = 'Creando…';
+    const body = {
+      email:       document.getElementById('newEmail').value.trim(),
+      password:    document.getElementById('newPassword').value,
+      full_name:   document.getElementById('newName').value.trim(),
+      institution: document.getElementById('newInstitution').value.trim(),
+      role:        document.getElementById('newRole').value,
+    };
+    const { data, error } = await sb.functions.invoke('create-user', { body });
+    if (error) {
+      let msg = error.message;
+      try { msg = (await error.context.json()).error || msg; } catch (_) {}
+      if (/Failed to send|not found|404/i.test(msg)) msg = 'La función "create-user" no está instalada en Supabase.';
+      status.textContent = 'Error: ' + msg;
+      return;
+    }
+    closeCreate();
+    await loadPeople();
+    const created = people.find(p => p.id === data.id);
+    if (created) openEdit(created);
+    document.getElementById('saveStatus').textContent = 'Perfil creado ✓ Puedes añadir su foto aquí.';
+  });
 
   document.getElementById('editForm').addEventListener('submit', async e => {
     e.preventDefault();
