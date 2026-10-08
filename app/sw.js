@@ -1,6 +1,6 @@
 // Service worker: guarda la app en caché para que abra rápido y funcione sin conexión.
 // Si cambias index.html, sube el número de versión para que los móviles cojan la nueva.
-const CACHE = 'checkins-demo-v3';
+const CACHE = 'checkins-demo-v4';
 
 const LOCAL_FILES = [
   './',

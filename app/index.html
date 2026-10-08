@@ -2,15 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Check-ins (Demo)</title>
 
-  <!-- App en el iPhone (Añadir a pantalla de inicio) -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#009b79" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- App en el iPhone (Añadir a pantalla de inicio).
+       iOS 26 ya la abre como app sin Safari. No añadir viewport-fit=cover,
+       status-bar-style ni manifest: en iOS 26 dejan un hueco debajo de la barra. -->
   <meta name="apple-mobile-web-app-title" content="Check-ins" />
   <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="icon" href="icon-192.png" />
@@ -44,20 +41,19 @@
     }
 
     /* Layout: top bar + content + bottom bar */
-    /* Fijado a los 4 bordes: en iOS (modo app) 100vh/100dvh deja un hueco abajo */
     .layout {
-      position: fixed;
-      inset: 0;
+      position: relative;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    /* La barra superior/inferior se extienden bajo el notch y la barra de inicio del iPhone */
+    
     .topbar {
       flex-shrink: 0;
-      height: calc(56px + env(safe-area-inset-top));
-      padding: env(safe-area-inset-top) 8px 0;
+      height: 56px;
+      padding: 0 8px;
       background: #009b79;
       display: flex;
       align-items: center;
@@ -76,8 +72,7 @@
 
     .bottombar {
       flex-shrink: 0;
-      height: calc(56px + env(safe-area-inset-bottom) / 3);
-      padding-bottom: calc(env(safe-area-inset-bottom) / 3);
+      height: 56px;
       background: #009b79;
       display: flex;
       align-items: center;
@@ -151,7 +146,7 @@
     .demo-ribbon {
       position: absolute;
       left: 0; right: 0;
-      bottom: calc(56px + env(safe-area-inset-bottom) / 3);
+      bottom: 56px;
       background: rgba(251, 191, 36, 0.92);
       color: #1f2937;
       text-align: center;
@@ -286,27 +281,6 @@
 <div class="demo-watermark"></div>
 
 <script>
-  // ── Pantalla completa en modo app (iOS) ──
-  // En iOS, abierta desde la pantalla de inicio, la altura que da el navegador es más corta
-  // que la pantalla real y deja un hueco debajo de la barra. Usamos la altura real.
-  function fitScreen() {
-    const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-    if (!standalone) return;
-    const portrait = window.innerHeight >= window.innerWidth;
-    const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    const layout = document.querySelector('.layout');
-    if (window.innerHeight < screenH) {
-      layout.style.bottom = 'auto';
-      layout.style.height = screenH + 'px';
-    } else {
-      layout.style.bottom = '';
-      layout.style.height = '';
-    }
-  }
-  fitScreen();
-  window.addEventListener('resize', fitScreen);
-  window.addEventListener('orientationchange', () => setTimeout(fitScreen, 300));
-
   // ── Guardar lo que edites (así al abrir la app sigue igual) ──
   const STORAGE_KEY = 'checkins-demo';
   function loadSaved() {
